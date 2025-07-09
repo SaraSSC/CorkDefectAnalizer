@@ -21,16 +21,16 @@ def create_train_csv():
         raise FileNotFoundError(f"Images directory not found: {images_dir}")
     if not masks_dir.exists():
         raise FileNotFoundError(f"Masks directory not found: {masks_dir}")
-    
-    # Get all image files
-    image_files = list(images_dir.glob("*.bmp"))
-    
+
+    # Get all image files (both PNG and JPG)
+    image_files = list(images_dir.glob("*.png")) + list(images_dir.glob("*.jpg"))
+
     if not image_files:
-        raise ValueError("No .bmp image files found in the images directory")
+        raise ValueError("No .png nor .jpg images files found in the images directory")
     
     # Create lists to store the data
-    image_paths = []
-    mask_paths = []
+    image_id = []
+    mask_id = []
     missing_masks = []
     
     print(f"Found {len(image_files)} image files")
@@ -47,8 +47,8 @@ def create_train_csv():
         # Check if the corresponding mask exists
         if mask_file.exists():
             # Store relative paths
-            image_paths.append(f"images/{image_file.name}")
-            mask_paths.append(f"masks/{mask_filename}")
+            image_id.append(f"{image_file.name}")
+            mask_id.append(f"{mask_filename}")
             print(f"✓ Matched: {image_file.name} -> {mask_filename}")
         else:
             missing_masks.append(image_file.name)
@@ -61,10 +61,10 @@ def create_train_csv():
             print(f"  - {missing}")
     
     # Create DataFrame
-    if image_paths:
+    if image_id:
         df = pd.DataFrame({
-            'image_path': image_paths,
-            'mask_path': mask_paths
+            'image_id': image_id,
+            'mask_id': mask_id
         })
         
         # Create the output directory if it doesn't exist
@@ -84,12 +84,9 @@ def create_train_csv():
         return None
 
 def main():
-    """
-    Main function to run the script
-    """
+    
     try:
-        print("Creating train.csv file for image-mask mapping...")
-        print("=" * 50)
+       
         
         df = create_train_csv()
         

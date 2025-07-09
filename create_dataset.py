@@ -75,21 +75,6 @@ def convert_labelstudio_coco(json_file, output_dir):
         mask_filename = os.path.join(masks_dir, f"{base_filename}_mask.png")
         Image.fromarray(mask).save(mask_filename)
         
-        
-        #Remove if breaks
-        def convert_bmp_to_png(bmp_path, png_path):
-            """
-            Convert BMP image to PNG format
-            """
-            try:
-                img = Image.open(bmp_path)
-                img.save(png_path, "PNG")
-                print(f"Converted {bmp_path} to {png_path}")
-            except Exception as e:
-                print(f"Error converting {bmp_path} to PNG: {e}")
-        #---------------
-        
-        
         # Copy the image if available
         # For Label Studio's "COCO with images" export, images are usually in an 'images' folder
         json_dir = os.path.dirname(json_file)
@@ -102,11 +87,22 @@ def convert_labelstudio_coco(json_file, output_dir):
         image_found = False
         for img_path in possible_image_paths:
             if os.path.exists(img_path):
-                output_image_path = os.path.join(images_dir, os.path.basename(filename))
+                # Determine output path - convert BMP to PNG
+                base_filename = os.path.splitext(os.path.basename(filename))[0]
+                if filename.lower().endswith('.bmp'):
+                    output_image_path = os.path.join(images_dir, f"{base_filename}.png")
+                else:
+                    output_image_path = os.path.join(images_dir, os.path.basename(filename))
+                
                 # Copy using PIL to handle different formats
                 try:
                     img = Image.open(img_path)
-                    img.save(output_image_path)
+                    # Save as PNG if original was BMP, otherwise keep original format
+                    if filename.lower().endswith('.bmp'):
+                        img.save(output_image_path, "PNG")
+                        print(f"Converted {filename} from BMP to PNG")
+                    else:
+                        img.save(output_image_path)
                     image_found = True
                     successful_conversions += 1
                     break
@@ -185,7 +181,7 @@ def main():
     parser = argparse.ArgumentParser(description="Convert Label Studio exports to SAM training format")
     parser.add_argument("--input", type=str, required=True, 
                         help="Path to Label Studio export .json file (COCO JSON) or directory (VOC)")
-    parser.add_argument("--output_dir", type=str, default="./database",
+    parser.add_argument("--output_dir", type=str, default="./dataset",
                         help="Directory to save converted dataset")
     parser.add_argument("--format", type=str, choices=["auto", "coco", "voc"], default="auto", 
                        help="Format of the input: 'coco' for COCO JSON, 'voc' for PASCAL VOC directory")
@@ -219,7 +215,7 @@ def main():
         print("Starting VOC format conversion...\n")
         convert_voc(input_path, output_dir)
         
-print("\nAfter conversion, use prepare_csv_database.py to make the CVS file")
+print("\nAfter conversion, use prepare_csv_dataset.py to make the CVS file")
 
 if __name__ == "__main__":
     main()
