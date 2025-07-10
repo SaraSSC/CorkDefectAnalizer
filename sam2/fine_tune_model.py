@@ -5,6 +5,8 @@ import random
 import cv2
 import torch
 import torch.amp
+from torch.amp.autocast_mode import autocast
+from torch.amp.grad_scaler import GradScaler
 import torch.nn.utils
 import torch.nn.functional as F
 import pandas as pd
@@ -14,14 +16,14 @@ import matplotlib.colors as mcolors
 from sklearn.model_selection import train_test_split
 import sam2
 
-from sam2.sam2.build_sam import build_sam2
-from sam2.sam2.sam2_image_predictor import SAM2ImagePredictor
+from sam2.build_sam import build_sam2
+from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
 
 # Specify the path to the SAM2 model checkpoint and configuration file
-sam2_checkpoint = "./sam2/checkpoints/sam2.1_hiera_tiny.pt"
-model_cfg = "./sam2/sam2/configs/sam2.1/sam2.1_hiera_t.yaml"
+sam2_checkpoint = "./checkpoints/sam2.1_hiera_tiny.pt"
+model_cfg = "./configs/sam2.1/sam2.1_hiera_t.yaml"
 
 # By initializing build_sam2 with these paths the core SAM2 model on the GPU is instantiated
 sam2_model = build_sam2(model_cfg, sam2_checkpoint, device="cuda:0")
@@ -34,25 +36,37 @@ predictor.model.sam_mask_decoder.train(True)
 predictor.model.sam_prompt_encoder.train(True)
 
 
-scaler = torch.amp.GradScaler()  # For mixed precision training 
+scaler = GradScaler("cuda")  # For mixed precision training 
 NO_OF_STEPS = 8000  # Number of training steps
+
+# Creates de directory to save the fine-tuned model
+def create_fine_tuned_model_dir():
+    if not os.path.exists("../sam2/fine_tuned_models"):
+        os.makedirs("../sam2/fine_tuned_models")
+    print("Directory for fine-tuned models created or already exists.")
+
+# Create the directory for fine-tuned models
+create_fine_tuned_model_dir()
+    
 FINE_TUNED_MODEL_NAME = "cork_analizer_sam2"
 
+#TODO: modify the learning rate (up)
 optimizer = torch.optim.AdamW(params=predictor.model.parameters(),
                               lr=0.00005,  # Learning rate
                               weight_decay=1e-4)
 
-# There are different learning rate schedulers available, here we use StepLR
+# There are different learning rate schedulers available, here I'm using StepLR
+#TODO: modify the step size and gamma (min seps 2000, gamma 0.6)
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                             step_size=2000,
+                                             step_size=900,
                                              gamma=0.6)  # Learning rate schedule
 accumulation_steps = 8  # Gradient accumulation steps
 
 # Training function
 
 def train (predictor, train_data, step, mean_iou):
-    with torch.amp.autocast(device_type='cuda'):
+    with autocast("cuda"):
         image, mask, input_point, num_masks = read_batch(train_data, 
                                                          visualize_data=False)
         
@@ -68,7 +82,7 @@ def train (predictor, train_data, step, mean_iou):
             return
 
         predictor.set_image(image)
-        mask_input, unnorm_coords, labels, unnorm_box = predictor.prep_prompts(
+        mask_input, unnorm_coords, labels, unnorm_box = predictor._prep_prompts(
             input_point,
             input_label,
             box=None,
@@ -131,19 +145,12 @@ def train (predictor, train_data, step, mean_iou):
             print(f"Step {step}: Current LR = {current_lr:.6f}, IoU = {mean_iou:.6f}, Seg Loss = {seg_loss:.6f}")
     return mean_iou
 
-""" 
-In the training function it starts by reading a single random batch (which, is essentially one image-mask pair at a time). 
-Creates a foreground label (input_label = 1) for each set of prompt points. The predictor first encodes the image,
-then encodes the prompts (_prep_prompts), and finally feeds these embeddings into sam_mask_decoder to obtain the predicted masks
-"""
-
 def validate(predictor, test_data, step, mean_iou):
     predictor.model.eval()
-    with torch.amp.autocast(device_type='cuda'):
+    with autocast("cuda"):
         with torch.no_grad():
-            image, mask, input_point, num_masks = read_batch(test_data,
-                                                             visualize_data=False
-                                                             )
+            image, mask, input_point, num_masks = read_batch(test_data, visualize_data=False)
+             
             if image is None or mask is None or num_masks == 0:
                 return
      
@@ -210,4 +217,10 @@ valid_mean_iou = 0.0
 
 for step in range(1, NO_OF_STEPS + 1):
     train_mean_iou = train(predictor, train_data, step, train_mean_iou)
-    valid_mean_iou = validate(predictor, valid_data, step, valid_mean_iou)
+    valid_mean_iou = validate(predictor, test_data, step, valid_mean_iou)
+
+# Save the final model
+final_model_path = f"../fine_tuned_models/{FINE_TUNED_MODEL_NAME}_final.pt"
+torch.save(predictor.model.state_dict(), final_model_path)
+print(f"Final model saved at: {final_model_path}")
+print("Training completed!")

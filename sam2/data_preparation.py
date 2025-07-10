@@ -11,8 +11,8 @@ import matplotlib.colors as mcolors
 from sklearn.model_selection import train_test_split
 import sam2
 
-from sam2.sam2.build_sam import build_sam2
-from sam2.sam2.sam2_image_predictor import SAM2ImagePredictor
+from sam2.build_sam import build_sam2
+from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 """
 Setting the seed for reproducibility.
@@ -50,7 +50,7 @@ data_dir = "./dataset"
 images_dir = os.path.join(data_dir, "images")
 masks_dir = os.path.join(data_dir, "masks")
 
-train_df = pd.read_csv(os.path.join(data_dir," train.csv"))
+train_df = pd.read_csv(os.path.join(data_dir, "train.csv"))
 
 train_df, test_df = train_test_split(train_df, test_size=0.2, random_state=42)
 
@@ -89,6 +89,7 @@ This will be our structure of the training batch [input image, mask, the points,
 this is the finest approach to train SAM2 very quickly, with less computational expenses. 
 
 """
+
 
 #Takes a random sample from the dataset
 def read_batch(data, visualize_data=True):
@@ -159,3 +160,12 @@ def read_batch(data, visualize_data=True):
 
 #structure of the training batch [input image, mask, the points, and the number of seg masks]
 Img1, masks1, points1, num_masks = read_batch(train_data, visualize_data=True)
+
+def load_dataset():
+    """
+    Load and return the training and test datasets.
+    Returns:
+        tuple: (train_data, test_data) where each is a list of dictionaries
+               containing image and annotation paths
+    """
+    return train_data, test_data
