@@ -103,7 +103,7 @@ If you're using Label Studio for annotations:
 
 # Point to the JSON file; the script will automatically find the images folder next to it
 
-python prepare_dataset.py --input /path/to/label_studio_export/result.json --output_dir ./converted_dataset --format coco
+python create_dataset.py --input /path/to/label_studio_export/result.json --output_dir ./converted_dataset --format coco
 
 ```
 
@@ -137,7 +137,7 @@ dataset/
 	  A CSV file will map each image to its corresponding segmentation mask, ensuring proper indexing for SAM2 training.
 	  
 ```bash
-python prepare_csv_dataset.py
+python create_train_csv_dataset.py
 ```
 
 Final structure after runing:
@@ -162,6 +162,7 @@ dataset/
 |   └── ...
 
 └── train.csv
+
 
 ```
 ## Tips for Training SAM
@@ -212,7 +213,7 @@ SAM training requires binary segmentation masks with these specifications:
    - Each mask must have the same filename as its corresponding image (with .png extension)
 
    - Example: `image1.jpg` → `image1_mask.png`
-			 `image1.png` → `image1_mask.png`
+			  `image1.png` → `image1_mask.png`
 
   
 

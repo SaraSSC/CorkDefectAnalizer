@@ -2,7 +2,7 @@ import os
 import random
 import cv2
 import torch
-import torch.nn.utils as utils
+import torch.nn.utils
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
@@ -79,7 +79,7 @@ This function takes a random sample from our dataset, loads and resizes the imag
 this default size for training, and consolidates the mask into a single binary representation. We are not applying any augmentations
 on the data as SAM2 is capable enough to handle small dataset.
 
-Then we generate some random points on the ROI regions of the mask, which we will use as an input to the model. 
+Then generates some random points on the ROI regions of the mask, which we will use as an input to the model. 
 Apply light erosion on the mask to prevent sampling prompt points on boundary regions, which can sometimes confuse the model. 
 This ensures each distinct diseased region is represented by at least one prompt
 
@@ -90,5 +90,72 @@ this is the finest approach to train SAM2 very quickly, with less computational 
 
 """
 
-def read_batch(data, visualize_data = True):
+#Takes a random sample from the dataset
+def read_batch(data, visualize_data=True):
+    ent = data[np.random.randint(len(data))]
+    Img = cv2.imread(ent["image"])[..., ::-1]  # Convert BGR to RGB
+    ann_map = cv2.imread(ent["annotation"], cv2.IMREAD_GRAYSCALE)
     
+    if Img is None or ann_map is None:
+        print(f"Error reading image or annotation for {ent['image']}")
+        return None, None, None, 0
+    
+    #resize the image and mask to 1024x1024
+    r = np.min([1024 / Img.shape[0], 1024 / Img.shape[1]])
+    Img = cv2.resize(Img, (int(Img.shape[1] * r), int(Img.shape[0] * r)))
+    ann_map = cv2.resize(ann_map, (int(ann_map.shape[1] * r), int(ann_map.shape[0] * r)),
+                        interpolation=cv2.INTER_NEAREST)
+    
+    # Consolidate the mask into a single binary representation
+    binary_mask = np.zeros_like(ann_map, dtype=np.uint8)
+    points = []
+    inds = np.unique(ann_map)[1:]
+    
+    for ind in inds:
+        mask = (ann_map == ind).astype(np.uint8)
+        binary_mask = np.maximum(binary_mask, mask)
+    
+    # Generate random points on the ROI regions of the mask
+    # Apply light erosion to prevent sampling prompt points on boundary regions
+    eroded_mask = cv2.erode(binary_mask, np.ones((5, 5), np.uint8), iterations=1)
+    coords = np.argwhere(eroded_mask > 0)
+    
+    if len(coords) > 0:
+        for _ in inds:
+            yx = np.array(coords[np.random.randint(len(coords))])
+            points.append([yx[1], yx[0]])
+    points = np.array(points)
+    
+    if visualize_data:
+        plt.figure(figsize=(15, 5))
+        plt.subplot(1, 3, 1)
+        plt.title('Original Image')
+        plt.imshow(Img)
+        plt.axis('off')
+        
+        plt.subplot(1, 3, 2)
+        plt.title('Binarized Mask')
+        plt.imshow(binary_mask, cmap='gray')
+        plt.axis('off')
+        
+        plt.subplot(1, 3, 3)
+        plt.title('Binary Mask with Points')
+        plt.imshow(binary_mask, cmap='gray')
+       
+        colors = list(mcolors.TABLEAU_COLORS.values())
+        
+        for i, point in enumerate(points):
+            plt.scatter(point[0], point[1], c=colors[i % len(colors)], s=100, label=f'Point {i+1}')
+        plt.axis('off')
+        
+        plt.tight_layout()
+        plt.show()
+        
+    binary_mask = np.expand_dims(binary_mask, axis=1)
+    binary_mask = binary_mask.transpose((2, 0, 1))  # Change mask shape into the shape (1, H, W)
+    
+    points = np.expand_dims(points, axis=1)  # Points into the shape above (num_points, 1, 2)
+    return Img, binary_mask, points, len(inds)
+
+#structure of the training batch [input image, mask, the points, and the number of seg masks]
+Img1, masks1, points1, num_masks = read_batch(train_data, visualize_data=True)
