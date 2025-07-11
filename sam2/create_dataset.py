@@ -54,7 +54,7 @@ def convert_labelstudio_coco(json_file, output_dir):
         height = image_info["height"]
         
         # Create a blank mask
-        mask = np.zeros((height, width), dtype=np.uint8)
+        mask = np.zeros((height, width, 3), dtype=np.uint8)
         
         # Draw all segments for this image
         for ann in image_annotations[image_id]:
@@ -68,7 +68,7 @@ def convert_labelstudio_coco(json_file, output_dir):
                         # Convert flat array to points
                         points = np.array(segment).reshape(-1, 2).astype(np.int32)
                         # Draw the polygon - OpenCV requires color as a tuple
-                        cv2.fillPoly(mask, [points], (255,))
+                        cv2.fillPoly(mask, [points], (255, 0, 0))
         
         # Save the mask
         base_filename = os.path.splitext(os.path.basename(filename))[0]
@@ -156,7 +156,7 @@ def convert_voc(voc_dir, output_dir):
         
         # Convert to binary (any non-zero value becomes 255)
         binary_mask = np.zeros_like(mask)
-        binary_mask[mask > 0] = 255
+        binary_mask[mask > 0] = 255, 3, 3
         
         # Save binary mask
         output_mask_path = os.path.join(masks_dir, mask_file.name)

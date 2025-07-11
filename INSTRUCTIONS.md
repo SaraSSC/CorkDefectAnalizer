@@ -64,7 +64,11 @@ Alternatively, you can install all dependencies from the requirements.txt file:
 pip install -r requirements.txt
 
 ```
+Move inside the `sam2` folder:
 
+```bash
+cd sam2
+```
 
 ## Dataset Preparation
 
@@ -83,7 +87,7 @@ If you're using Label Studio for annotations:
   
 1. Export your project in **"COCO with images"** format (which includes both annotations and images[in  .bmp format])
 
-2. Extract the ZIP file from Label Studio to  `./label_studio_exports/`
+2. Extract the ZIP file from Label Studio to  `./sam2/label_studio_exports/`
 
    - This will create a JSON file (typically `result.json`) and an `images` folder
 
@@ -182,7 +186,19 @@ python fine_tune_model.py
 
 ```
 This script will load the SAM2.1 model, prepare the dataset, and start training. It will save checkpoints and log training progress.
+It will also open a image visualization window to a sample image from the dataset, just to check if the data is being loaded correctly. You need to close it so the model can start the training. You can close it by pressing `q` or `esc` or by clicking in the X button.
 
+## Inference
+To run inference on new images using the fine-tuned model, use the `inference_fine_tuned.py` script:
+
+```bash
+python inference_fine_tuned.py
+```
+If you are using a low memory GPU, run instead:
+
+```bash
+python inference_low_gpu.py
+```
 
 ## Tips for Training SAM
 

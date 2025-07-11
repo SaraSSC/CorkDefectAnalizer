@@ -5,7 +5,8 @@ import random
 import cv2
 import torch
 import torch.amp
-from torch.amp.autocast_mode import autocast
+#from torch.amp.autocast_mode import autocast
+from torch.amp import autocast
 from torch.amp.grad_scaler import GradScaler
 import torch.nn.utils
 import torch.nn.functional as F
@@ -37,7 +38,9 @@ predictor.model.sam_prompt_encoder.train(True)
 
 
 scaler = GradScaler("cuda")  # For mixed precision training 
-NO_OF_STEPS = 8000  # Number of training steps
+
+#TODO: modify to 8000
+NO_OF_STEPS = 100  # Number of training steps
 
 # Creates de directory to save the fine-tuned model
 def create_fine_tuned_model_dir():
@@ -50,36 +53,41 @@ create_fine_tuned_model_dir()
     
 FINE_TUNED_MODEL_NAME = "cork_analizer_sam2"
 
-#TODO: modify the learning rate (up)
+#TODO: modify the learning rate (up to 5)
 optimizer = torch.optim.AdamW(params=predictor.model.parameters(),
-                              lr=0.00005,  # Learning rate
+                              lr=0.00001,  # Learning rate
                               weight_decay=1e-4)
 
 # There are different learning rate schedulers available, here I'm using StepLR
 #TODO: modify the step size and gamma (min seps 2000, gamma 0.6)
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                             step_size=900,
+                                             step_size=400,  # Step size for learning rate decay
                                              gamma=0.6)  # Learning rate schedule
+      
+#TODO: increase to 8                                             
 accumulation_steps = 8  # Gradient accumulation steps
 
 # Training function
 
 def train (predictor, train_data, step, mean_iou):
-    with autocast("cuda"):
+    with torch.amp.autocast(device_type='cuda'):
         image, mask, input_point, num_masks = read_batch(train_data, 
                                                          visualize_data=False)
         
         if image is None or mask is None or num_masks==0:
-            return
+            print(f"Step {step}: Training - Early return: image={image is not None}, mask={mask is not None}, num_masks={num_masks}")
+            return mean_iou
         
         input_label = np.ones((num_masks,1))
         
         if not isinstance(input_point, np.ndarray) or not isinstance(input_label, np.ndarray):
-            return
+            print(f"Step {step}: Training - Early return: input_point type={type(input_point)}, input_label type={type(input_label)}")
+            return mean_iou
 
         if input_point.size == 0 or input_label.size == 0:
-            return
+            print(f"Step {step}: Training - Early return: input_point size={input_point.size}, input_label size={input_label.size}")
+            return mean_iou
 
         predictor.set_image(image)
         mask_input, unnorm_coords, labels, unnorm_box = predictor._prep_prompts(
@@ -90,8 +98,10 @@ def train (predictor, train_data, step, mean_iou):
             normalize_coords=True
         )
 
-        if unnorm_coords is None or labels is None or unnorm_box is None:
-            return
+        
+        if unnorm_coords is None or labels is None or unnorm_coords.shape[0] == 0 or labels.shape[0] == 0:
+            print(f"Step {step}: Training - Early return: unnorm_coords={unnorm_coords is not None}, labels={labels is not None}, unnorm_box={unnorm_box is not None}")
+            return mean_iou
         
         sparse_embeddings, dense_embeddings = predictor.model.sam_prompt_encoder(
             points=(unnorm_coords, labels),
@@ -134,9 +144,10 @@ def train (predictor, train_data, step, mean_iou):
         if step % accumulation_steps == 0:
             scaler.step(optimizer)
             scaler.update()
+            scheduler.step()
             predictor.model.zero_grad()
  
-        scheduler.step()
+        #scheduler.step() """Moving it inside the if condition to avoid Pytorch warning"""
          
         mean_iou = mean_iou * 0.99 + 0.01 * np.mean(iou.cpu().detach().numpy())
          
@@ -147,29 +158,34 @@ def train (predictor, train_data, step, mean_iou):
 
 def validate(predictor, test_data, step, mean_iou):
     predictor.model.eval()
-    with autocast("cuda"):
+    with torch.amp.autocast(device_type='cuda'):
         with torch.no_grad():
             image, mask, input_point, num_masks = read_batch(test_data, visualize_data=False)
              
             if image is None or mask is None or num_masks == 0:
-                return
+                print(f"Step {step}: Validating - Early return: image={image is not None}, mask={mask is not None}, num_masks={num_masks}")
+                return mean_iou
      
             input_label = np.ones((num_masks, 1))
              
             if not isinstance(input_point, np.ndarray) or not isinstance(input_label, np.ndarray):
-                return
-     
+                print(f"Step {step}: Validating - Early return: input_point type={type(input_point)}, input_label type={type(input_label)}")
+                return mean_iou
+
             if input_point.size == 0 or input_label.size == 0:
-                return
-     
+                print(f"Step {step}: Validating - Early return: input_point size={input_point.size}, input_label size={input_label.size}")
+                return mean_iou
+
             predictor.set_image(image)
             mask_input, unnorm_coords, labels, unnorm_box = predictor._prep_prompts(
                 input_point, input_label, box=None, mask_logits=None, normalize_coords=True
             )
              
             if unnorm_coords is None or labels is None or unnorm_coords.shape[0] == 0 or labels.shape[0] == 0:
-                return
-     
+            
+                print(f"Step {step}: Validating - Early return: unnorm_coords={unnorm_coords is not None}, labels={labels is not None}, unnorm_coords shape={unnorm_coords.shape if unnorm_coords is not None else 'None'}, labels shape={labels.shape if labels is not None else 'None'}")
+                return mean_iou
+
             sparse_embeddings, dense_embeddings = predictor.model.sam_prompt_encoder(
                 points=(unnorm_coords, labels), boxes=None, masks=None
             )
@@ -212,15 +228,15 @@ def validate(predictor, test_data, step, mean_iou):
                 print(f"Step {step}: Current LR = {current_lr:.6f}, Valid_IoU = {mean_iou:.6f}, Valid_Seg Loss = {seg_loss:.6f}")
     return mean_iou
 
-train_mean_iou = 0.0
-valid_mean_iou = 0.0
+train_mean_iou = 0
+valid_mean_iou = 0
 
 for step in range(1, NO_OF_STEPS + 1):
     train_mean_iou = train(predictor, train_data, step, train_mean_iou)
     valid_mean_iou = validate(predictor, test_data, step, valid_mean_iou)
 
 # Save the final model
-final_model_path = f"../fine_tuned_models/{FINE_TUNED_MODEL_NAME}_final.pt"
+final_model_path = f"./fine_tuned_models/{FINE_TUNED_MODEL_NAME}.pt"
 torch.save(predictor.model.state_dict(), final_model_path)
-print(f"Final model saved at: {final_model_path}")
+print(f"Model saved at: {final_model_path}")
 print("Training completed!")

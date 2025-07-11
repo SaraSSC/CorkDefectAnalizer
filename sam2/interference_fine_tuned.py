@@ -1,5 +1,5 @@
-from data_preparation import *
-from fine_tune_model import *  
+
+from fine_tune_model import model_cfg, sam2_checkpoint, test_data  # Import necessary configurations and test data  
 
 import os
 import random
@@ -54,7 +54,7 @@ input_points = get_points(target_mask, num_samples)
  
 # Load the fine-tuned model
 #TODO: add the name of the fine-tuned model
-FINE_TUNED_MODEL_WEIGHTS = "../fine_tuned_models/"
+FINE_TUNED_MODEL_WEIGHTS = "./fine_tuned_models/cork_analizer_sam2_final.pt"
 sam2_model = build_sam2(model_cfg, sam2_checkpoint, device="cuda")
  
 # Build net and load weights
@@ -111,3 +111,8 @@ plt.axis('off')
  
 plt.tight_layout()
 plt.show()
+
+
+import gc
+import psutil
+import time
