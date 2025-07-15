@@ -3,9 +3,9 @@
 This project provides tools to fine-tune Meta's Segment Anything Model (SAM2.1) on custom segmentation datasets. 
 The implementation includes dataset preparation, model training, and inference scripts.
 
-## First step
+# First step
 
-###### Only ignore this step if it's already installed in your system :
+## Only ignore this step if it's already installed in your system :
 
 1.  Download the Microsoft Visual Studios Installer from from [Microsoft](https://visualstudio.microsoft.com/)
 	1.  Open and run the .exe file for installation of Microsoft Visual Studios 
@@ -17,15 +17,7 @@ The implementation includes dataset preparation, model training, and inference s
 	1.  After the download, copy the file and past it in Windows/Sys32 folder in your drive
 5. Download and install cuda-toolkit from [Nvidia](https://developer.nvidia.com/cuda-11-8-0-download-archive)
 
-## Second step
-###### Clone the Github repository to and folder/local of choice or download via their provided GUI interface
-
-- if by  GUI download, just unzip the folder to the location you want
-- if by using git commands 
-```bash 
-git clone https://github.com/SaraSSC/CorkDefectAnalizer.git
-```
-	
+# Second step
 
 ## Environment Setup
 (Note that you cannot ignore the [[#First step]] since SAM2.1 will not run without those programs )
@@ -45,16 +37,17 @@ conda activate sam2_env
 
   
 ```bash
-#this will install the lastest relece version
+#this will install the latest release version
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-pip install opencv-python matplotlib pandas scipy pillow tqdm transformers accelerate pycocotools label-studio
+pip install opencv-python matplotlib pandas scipy pillow tqdm transformers accelerate pycocotools 
+
+pip install label-studio
 
 pip install gradio  # For web interface
 
 ```
-
-  
+ 
 
 Alternatively, you can install all dependencies from the requirements.txt file:
 
@@ -64,11 +57,44 @@ Alternatively, you can install all dependencies from the requirements.txt file:
 pip install -r requirements.txt
 
 ```
+
+
+## Clone the Github repository to and folder/local of choice or download via their provided GUI interface
+
+- if by  GUI download, just unzip the folder to the location you want
+- if by using git commands 
+
+```bash 
+
+git clone https://github.com/SaraSSC/CorkDefectAnalizer.git
+
+```
+## Or start from scratch
+
+Install sam2 
+
+```bash
+
+git clone https://github.com/facebookresearch/sam2.git
+
+```
 Move inside the `sam2` folder:
 
 ```bash
+
 cd sam2
+pip install -e . #or pip install -e ".[dev]"
+
 ```
+Move inside checkpoints and install the checkpoints 
+
+```bash
+
+cd checkpoints
+download_ckpts.sh #or download_ckpts.bat
+
+```
+
 
 ## Dataset Preparation
 
@@ -94,11 +120,13 @@ If you're using Label Studio for annotations:
    - **Important**: Keep the original folder structure - the JSON file and `images` folder must be in the same directory
 
 1. Use the `prepare_dataset.py` script to convert the exports to our format:
-	this python file is made to handle coco and pascal voc formats
-		```
-		
-```
+
+   - This python file is made to handle coco and pascal voc formats
+
+```bash
+
 --format {option: coco or voc}
+
 ```
 
 
@@ -141,10 +169,12 @@ dataset/
 	  A CSV file will map each image to its corresponding segmentation mask, ensuring proper indexing for SAM2 training.
 	  
 ```bash
+
 python create_train_csv_dataset.py
+
 ```
 
-Final structure after runing:
+Final structure after runNing:
 
 ```
 dataset/
@@ -173,7 +203,9 @@ dataset/
 Then run the `data_preparation.py` script to prepare the dataset for training:
 
 ```bash
+
 python data_preparation.py
+
 ```
 This script will read the images and masks, resize them to 1024x1024, and generate random points on the regions of interest (ROIs) in the masks. The output will be a batch of images, binary masks, and points ready for training.
 
@@ -182,6 +214,7 @@ This script will read the images and masks, resize them to 1024x1024, and genera
 After preparing the dataset, you can fine-tune SAM2.1 using the `fine_tune_model.py` script:
 
 ```bash
+
 python fine_tune_model.py
 
 ```
@@ -192,12 +225,16 @@ It will also open a image visualization window to a sample image from the datase
 To run inference on new images using the fine-tuned model, use the `inference_fine_tuned.py` script:
 
 ```bash
+
 python inference_fine_tuned.py
+
 ```
 If you are using a low memory GPU, run instead:
 
 ```bash
+
 python inference_low_gpu.py
+
 ```
 
 ## Tips for Training SAM

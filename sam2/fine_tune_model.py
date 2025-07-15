@@ -1,4 +1,4 @@
-from data_preparation import *  
+from CorkDefectAnalizer.sam2.data_preparation import *  
 
 import os
 import random
@@ -61,6 +61,25 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
 #TODO: increase to 8                                             
 accumulation_steps = 8  # Gradient accumulation steps
 
+def get_bounding_box(ground_truth_map):
+    """Get bounding box from mask with perturbation"""
+    y_indices, x_indices = np.where(ground_truth_map > 0)
+    if len(y_indices) == 0 or len(x_indices) == 0:
+        return None
+    
+    x_min, x_max = np.min(x_indices), np.max(x_indices)
+    y_min, y_max = np.min(y_indices), np.max(y_indices)
+    
+    # Add perturbation to bounding box coordinates
+    H, W = ground_truth_map.shape
+    x_min = max(0, x_min - np.random.randint(0, 20))
+    x_max = min(W, x_max + np.random.randint(0, 20))
+    y_min = max(0, y_min - np.random.randint(0, 20))
+    y_max = min(H, y_max + np.random.randint(0, 20))
+    
+    bbox = [x_min, y_min, x_max, y_max]
+    return bbox
+
 # Training function
 
 def train (predictor, train_data, step, mean_iou):
@@ -74,6 +93,10 @@ def train (predictor, train_data, step, mean_iou):
         
         input_label = np.ones((num_masks,1))
         
+         # Add bounding box prompt
+        bbox = get_bounding_box(mask)
+        input_box = np.array([bbox]) if bbox is not None else None
+        
         if not isinstance(input_point, np.ndarray) or not isinstance(input_label, np.ndarray):
             print(f"Step {step}: Training - Early return: input_point type={type(input_point)}, input_label type={type(input_label)}")
             return mean_iou
@@ -86,7 +109,7 @@ def train (predictor, train_data, step, mean_iou):
         mask_input, unnorm_coords, labels, unnorm_box = predictor._prep_prompts(
             input_point,
             input_label,
-            box=None,
+            box=input_box, # Use input_box for bounding box prompt
             mask_logits=None,
             normalize_coords=True
         )

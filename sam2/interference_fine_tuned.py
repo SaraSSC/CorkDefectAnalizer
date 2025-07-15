@@ -1,5 +1,5 @@
 
-from fine_tune_model import model_cfg, sam2_checkpoint, test_data  # Import necessary configurations and test data  
+from CorkDefectAnalizer.sam2.fine_tune_model import model_cfg, sam2_checkpoint, test_data  # Import necessary configurations and test data  
 
 import os
 import random
