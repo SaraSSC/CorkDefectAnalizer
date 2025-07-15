@@ -40,16 +40,9 @@ predictor.model.sam_prompt_encoder.train(True)
 scaler = GradScaler("cuda")  # For mixed precision training 
 
 #TODO: modify to 8000
-NO_OF_STEPS = 100  # Number of training steps
+NO_OF_STEPS = 500  # Number of training steps
 
-# Creates de directory to save the fine-tuned model
-def create_fine_tuned_model_dir():
-    if not os.path.exists("../sam2/fine_tuned_models"):
-        os.makedirs("../sam2/fine_tuned_models")
-    print("Directory for fine-tuned models created or already exists.")
 
-# Create the directory for fine-tuned models
-create_fine_tuned_model_dir()
     
 FINE_TUNED_MODEL_NAME = "cork_analizer_sam2"
 
@@ -235,8 +228,5 @@ for step in range(1, NO_OF_STEPS + 1):
     train_mean_iou = train(predictor, train_data, step, train_mean_iou)
     valid_mean_iou = validate(predictor, test_data, step, valid_mean_iou)
 
-# Save the final model
-final_model_path = f"./fine_tuned_models/{FINE_TUNED_MODEL_NAME}.pt"
-torch.save(predictor.model.state_dict(), final_model_path)
-print(f"Model saved at: {final_model_path}")
+
 print("Training completed!")

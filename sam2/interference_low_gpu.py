@@ -1,5 +1,5 @@
 from data_preparation import *
-from fine_tune_model import *  
+from fine_tune_model import model_cfg, sam2_checkpoint, test_data  # Import necessary configurations and test data
 
 import os
 import random
@@ -92,8 +92,8 @@ monitor_resources()
 
 # Load the fine-tuned model
 print("Loading fine-tuned model...")
-FINE_TUNED_MODEL_WEIGHTS = "./fine_tuned_models/cork_analizer_sam2_final.pt"
-sam2_model = build_sam2(model_cfg, sam2_checkpoint, device="cpu")
+FINE_TUNED_MODEL_WEIGHTS = "./fine_tuned_models/cork_analizer_sam2.pt"
+sam2_model = build_sam2(model_cfg, sam2_checkpoint, device="cuda")
 
 # Build net and load weights
 predictor = SAM2ImagePredictor(sam2_model)
@@ -106,7 +106,7 @@ monitor_resources()
 # Perform inference and predict masks
 print("Starting inference...")
 with torch.no_grad():
-    with autocast("cpu"):  # Use mixed precision for inference
+    with autocast("cuda"):  # Use mixed precision for inference
         predictor.set_image(image)
         
         # Add small delay to prevent overheating

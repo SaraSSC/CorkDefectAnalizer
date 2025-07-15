@@ -107,7 +107,7 @@ If you're using Label Studio for annotations:
 
 # Point to the JSON file; the script will automatically find the images folder next to it
 
-python create_dataset.py --input /path/to/label_studio_export/result.json --output_dir ./converted_dataset --format coco
+python create_dataset.py --input /path/to/label_studio_export/result.json --output_dir ./dataset --format coco
 
 ```
 
