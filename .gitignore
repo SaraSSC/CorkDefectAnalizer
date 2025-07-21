@@ -1,0 +1,2 @@
+# Temporarily exclude large trained model files
+cork_analizer_sam2_*.pt

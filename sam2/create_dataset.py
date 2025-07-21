@@ -68,7 +68,7 @@ def convert_labelstudio_coco(json_file, output_dir):
                         # Convert flat array to points
                         points = np.array(segment).reshape(-1, 2).astype(np.int32)
                         # Draw the polygon - OpenCV requires color as a tuple
-                        cv2.fillPoly(mask, [points], (255, 0, 0))
+                        cv2.fillPoly(mask, [points], (255, 255, 255))
         
         # Save the mask
         base_filename = os.path.splitext(os.path.basename(filename))[0]
@@ -99,7 +99,7 @@ def convert_labelstudio_coco(json_file, output_dir):
                     img = Image.open(img_path)
                     # Save as PNG if original was BMP, otherwise keep original format
                     if filename.lower().endswith('.bmp'):
-                        img.save(output_image_path, "PNG")
+                        img.save(output_image_path, 'PNG')
                         print(f"Converted {filename} from BMP to PNG")
                     else:
                         img.save(output_image_path)
@@ -113,6 +113,25 @@ def convert_labelstudio_coco(json_file, output_dir):
             print(f"Warning: Could not find image file {filename}. Tried paths:")
             for path in possible_image_paths:
                 print(f"  - {path}")
+            
+            # Try to find BMP files in label_studio_exports/images directory
+            label_studio_images_dir = os.path.join(os.path.dirname(os.path.dirname(json_file)), "label_studio_exports", "images")
+            if os.path.exists(label_studio_images_dir):
+                # Look for BMP files that match the base filename
+                base_filename = os.path.splitext(os.path.basename(filename))[0]
+                for bmp_file in os.listdir(label_studio_images_dir):
+                    if bmp_file.lower().endswith('.bmp') and base_filename in bmp_file:
+                        bmp_path = os.path.join(label_studio_images_dir, bmp_file)
+                        try:
+                            img = Image.open(bmp_path)
+                            output_image_path = os.path.join(images_dir, f"{base_filename}.png")
+                            img.save(output_image_path, 'PNG')
+                            print(f"Found and converted {bmp_file} from label_studio_exports/images to PNG")
+                            image_found = True
+                            successful_conversions += 1
+                            break
+                        except Exception as e:
+                            print(f"Error converting BMP image {bmp_path}: {e}")
     
     print(f"Conversion complete. Images and masks saved to {output_dir}")
 

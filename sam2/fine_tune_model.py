@@ -1,4 +1,4 @@
-from CorkDefectAnalizer.sam2.data_preparation import *  
+from data_preparation import * 
 
 import os
 import random
@@ -23,11 +23,15 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
 # Specify the path to the SAM2 model checkpoint and configuration file
-sam2_checkpoint = "./checkpoints/sam2.1_hiera_tiny.pt"
-model_cfg = "./configs/sam2.1/sam2.1_hiera_t.yaml"
+sam2_checkpoint = "./checkpoints/sam2.1_hiera_small.pt"
+model_cfg = "./configs/sam2.1/sam2.1_hiera_s.yaml"
 
-# By initializing build_sam2 with these paths the core SAM2 model on the GPU is instantiated
-sam2_model = build_sam2(model_cfg, sam2_checkpoint, device="cuda:0")
+# Check if CUDA is available and compatible, otherwise use CPU
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
+
+# By initializing build_sam2 with these paths the core SAM2 model is instantiated
+sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=device)
 
 # Class SAM2ImagePredictor is used to handle prompts and predictions
 predictor = SAM2ImagePredictor(sam2_model)
@@ -37,32 +41,35 @@ predictor.model.sam_mask_decoder.train(True)
 predictor.model.sam_prompt_encoder.train(True)
 
 
-scaler = GradScaler("cuda")  # For mixed precision training 
+scaler = GradScaler("cuda") if torch.cuda.is_available() else GradScaler("cpu")  # For mixed precision training 
 
 #TODO: modify to 8000
-NO_OF_STEPS = 500  # Number of training steps
+NO_OF_STEPS = 8000  # Number of training steps
 
 
     
 FINE_TUNED_MODEL_NAME = "cork_analizer_sam2"
 
-#TODO: modify the learning rate (up to 5)
+#TODO: modify the learning rate (up to .....5)
 optimizer = torch.optim.AdamW(params=predictor.model.parameters(),
-                              lr=0.00001,  # Learning rate
+                              lr=0.000001,  # Reduced learning rate - was too high
                               weight_decay=1e-4)
 
 # There are different learning rate schedulers available, here I'm using StepLR
 #TODO: modify the step size and gamma (min seps 2000, gamma 0.6)
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                             step_size=400,  # Step size for learning rate decay
-                                             gamma=0.6)  # Learning rate schedule
+                                             step_size=3000,  # Increased step size
+                                             gamma=0.8)  # Less aggressive decay
       
 #TODO: increase to 8                                             
 accumulation_steps = 8  # Gradient accumulation steps
 
 def get_bounding_box(ground_truth_map):
     """Get bounding box from mask with perturbation"""
+    if ground_truth_map.ndim > 2:
+        ground_truth_map = ground_truth_map[0]
+        
     y_indices, x_indices = np.where(ground_truth_map > 0)
     if len(y_indices) == 0 or len(x_indices) == 0:
         return None
@@ -150,7 +157,7 @@ def train (predictor, train_data, step, mean_iou):
         iou = inter / (gt_mask.sum(1).sum(1) + (prd_mask > 0.5).sum(1).sum(1) - inter)
  
         score_loss = torch.abs(prd_scores[:, 0] - iou).mean()
-        loss = seg_loss + score_loss * 0.05
+        loss = seg_loss + score_loss * 0.1  # Increased score loss weight
          
         loss = loss / accumulation_steps
         scaler.scale(loss).backward()
@@ -230,7 +237,7 @@ def validate(predictor, test_data, step, mean_iou):
             iou = inter / (gt_mask.sum(1).sum(1) + (prd_mask > 0.5).sum(1).sum(1) - inter)
  
             score_loss = torch.abs(prd_scores[:, 0] - iou).mean()
-            loss = seg_loss + score_loss * 0.05
+            loss = seg_loss + score_loss * 0.1  # Match training
             loss = loss / accumulation_steps
  
             if step % 500 == 0:

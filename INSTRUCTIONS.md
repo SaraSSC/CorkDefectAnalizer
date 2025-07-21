@@ -15,7 +15,9 @@ The implementation includes dataset preparation, model training, and inference s
 3.  Download and install Anaconda from [Anaconda](https://anaconda.org), don't forget to click on the checkbox to add the path to Windows Environments
 4.  Download wget.exe from [eternallybored](https://eternallybored.org/misc/wget/ )
 	1.  After the download, copy the file and past it in Windows/Sys32 folder in your drive
-5. Download and install cuda-toolkit from [Nvidia](https://developer.nvidia.com/cuda-11-8-0-download-archive)
+5. Download and install cuda-toolkit from [Nvidia](https://developer.nvidia.com/cuda-downloads) 
+   - For RTX 5060 Ti and newer GPUs, install CUDA 12.8 or newer
+   - For older GPUs, CUDA 11.8 from [archive](https://developer.nvidia.com/cuda-11-8-0-download-archive) may be sufficient
 
 # Second step
 
@@ -37,12 +39,17 @@ conda activate sam2_env
 
   
 ```bash
-#this will install the latest release version
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# For CUDA 12.x (recommended for RTX 5060 Ti and newer GPUs)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# For CUDA 11.8 (for older GPUs or existing installations)
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 pip install opencv-python matplotlib pandas scipy pillow tqdm transformers accelerate pycocotools 
 
 pip install label-studio
+
+pip install scikit-learn
 
 pip install gradio  # For web interface
 
@@ -135,7 +142,7 @@ If you're using Label Studio for annotations:
 
 # Point to the JSON file; the script will automatically find the images folder next to it
 
-python create_dataset.py --input /path/to/label_studio_export/result.json --output_dir ./dataset --format coco
+python create_dataset.py --input /path/to/label_studio_exports/result.json --output_dir ./dataset --format coco
 
 ```
 
@@ -196,9 +203,19 @@ dataset/
 |   └── ...
 
 └── train.csv
+ ```
 
+To check if the training data is okay for the fine tunning run:
+
+```bash
+
+python analyze_training_data.py
 
 ```
+If something isn't right, fixed it by deleting the conversions and train.csv and redo the 3 above commands on the same order (conversion→making the train.csv file→analyzing) before starting the fine tuning.
+
+
+## Fine-tuning SAM2.1
 
 Then run the `data_preparation.py` script to prepare the dataset for training:
 
@@ -208,9 +225,6 @@ python data_preparation.py
 
 ```
 This script will read the images and masks, resize them to 1024x1024, and generate random points on the regions of interest (ROIs) in the masks. The output will be a batch of images, binary masks, and points ready for training.
-
-## Fine-tuning SAM2.1
-
 After preparing the dataset, you can fine-tune SAM2.1 using the `fine_tune_model.py` script:
 
 ```bash
@@ -221,7 +235,9 @@ python fine_tune_model.py
 This script will load the SAM2.1 model, prepare the dataset, and start training. It will save checkpoints and log training progress.
 It will also open a image visualization window to a sample image from the dataset, just to check if the data is being loaded correctly. You need to close it so the model can start the training. You can close it by pressing `q` or `esc` or by clicking in the X button.
 
+
 ## Inference
+
 To run inference on new images using the fine-tuned model, use the `inference_fine_tuned.py` script:
 
 ```bash
@@ -229,12 +245,18 @@ To run inference on new images using the fine-tuned model, use the `inference_fi
 python inference_fine_tuned.py
 
 ```
-If you are using a low memory GPU, run instead:
+
+## Comparison
+
+To compare the fine tuned model with any of the sam2 base model.
+Modify the code on lines:
+	- 34→35 to specify the image testing
+	- 51→52 sam2 model checkpoints and model configuration
+	- 79 fine tuned model 
+
 
 ```bash
-
-python inference_low_gpu.py
-
+python test_base_vs_finetuned.py
 ```
 
 ## Tips for Training SAM
