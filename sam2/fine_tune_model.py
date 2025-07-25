@@ -23,8 +23,8 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
 # Specify the path to the SAM2 model checkpoint and configuration file
-sam2_checkpoint = "./checkpoints/sam2.1_hiera_small.pt"
-model_cfg = "./configs/sam2.1/sam2.1_hiera_s.yaml"
+sam2_checkpoint = "./checkpoints/sam2.1_hiera_base_plus.pt"
+model_cfg = "./sam2/configs/sam2.1/sam2.1_hiera_b+.yaml" #remove /sam2 path if breaks
 
 # Check if CUDA is available and compatible, otherwise use CPU
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -43,7 +43,7 @@ predictor.model.sam_prompt_encoder.train(True)
 
 scaler = GradScaler("cuda") if torch.cuda.is_available() else GradScaler("cpu")  # For mixed precision training 
 
-#TODO: modify to 8000
+
 NO_OF_STEPS = 8000  # Number of training steps
 
 
@@ -62,7 +62,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                              step_size=3000,  # Increased step size
                                              gamma=0.8)  # Less aggressive decay
       
-#TODO: increase to 8                                             
+                                           
 accumulation_steps = 8  # Gradient accumulation steps
 
 def get_bounding_box(ground_truth_map):
