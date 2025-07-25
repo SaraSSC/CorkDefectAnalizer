@@ -15,9 +15,9 @@ The implementation includes dataset preparation, model training, and inference s
 3.  Download and install Anaconda from [Anaconda](https://anaconda.org), don't forget to click on the checkbox to add the path to Windows Environments
 4.  Download wget.exe from [eternallybored](https://eternallybored.org/misc/wget/ )
 	1.  After the download, copy the file and past it in Windows/Sys32 folder in your drive
-5. Download and install cuda-toolkit from [Nvidia](https://developer.nvidia.com/cuda-downloads) 
-   - For RTX 5060 Ti and newer GPUs, install CUDA 12.8 or newer
-   - For older GPUs, CUDA 11.8 from [archive](https://developer.nvidia.com/cuda-11-8-0-download-archive) may be sufficient
+5. 	Download and install cuda-toolkit from [Nvidia](https://developer.nvidia.com/cuda-downloads) 
+	- For RTX 5060 Ti and newer GPUs, install CUDA 12.8 or newer
+	- For older GPUs, CUDA 11.8 from [archive](https://developer.nvidia.com/cuda-11-8-0-download-archive) may be sufficient
 
 # Second step
 
@@ -51,17 +51,16 @@ pip install label-studio
 
 pip install scikit-learn
 
-pip install gradio  # For web interface
 
 ```
  
 
-Alternatively, you can install all dependencies from the requirements.txt file:
+   Alternatively, you can install all dependencies from the requirements.txt file:
 
   
 ```bash
 
-pip install -r requirements.txt
+	pip install -r requirements.txt
 
 ```
 
@@ -78,22 +77,22 @@ git clone https://github.com/SaraSSC/CorkDefectAnalizer.git
 ```
 ## Or start from scratch
 
-Install sam2 
+1. Install sam2 
 
 ```bash
 
 git clone https://github.com/facebookresearch/sam2.git
 
 ```
-Move inside the `sam2` folder:
+2. Move inside the `sam2` folder:
 
 ```bash
 
 cd sam2
-pip install -e . #or pip install -e ".[dev]"
+pip install -e ".[dev]"
 
 ```
-Move inside checkpoints and install the checkpoints 
+3. Move inside checkpoints and install the checkpoints 
 
 ```bash
 
@@ -101,24 +100,32 @@ cd checkpoints
 download_ckpts.sh #or download_ckpts.bat
 
 ```
+4. Copy the files that are missing from my repository to the `sam2` folder, don't forget to keep the same names for them.
 
+# Dataset Preparation
 
-## Dataset Preparation
+## Option A: Using Raw Images and Masks
 
-### Option A: Using Raw Images and Masks
+Create a directory structure for your dataset:
+
+```bash
+
+mkdir -p ./dataset/images
+mkdir -p ./dataset/masks
+
+```
 
 If you already have image, masks and train.csv files just place then in the `./dataset` in their respective folders
 - `./dataset/images` for the images 
 - `./dataset/masks` for their masks
 - `./dataset` for the `train.csv` file
 
-### Option B: Converting from Label Studio
 
+## Option B: Converting from Label Studio
 
 If you're using Label Studio for annotations:
-
-  
-1. Export your project in **"COCO with images"** format (which includes both annotations and images[in  .bmp format])
+ 
+1. Export your project in **"COCO with images"** format (which includes both annotations and images[in  .(your original format)])
 
 2. Extract the ZIP file from Label Studio to  `./sam2/label_studio_exports/`
 
@@ -126,7 +133,7 @@ If you're using Label Studio for annotations:
 
    - **Important**: Keep the original folder structure - the JSON file and `images` folder must be in the same directory
 
-1. Use the `prepare_dataset.py` script to convert the exports to our format:
+3. Use the `prepare_dataset.py` script to convert the exports to our format:
 
    - This python file is made to handle coco and pascal voc formats
 
@@ -139,22 +146,19 @@ If you're using Label Studio for annotations:
 
 ```bash
 # For Label Studio's COCO export format
-
 # Point to the JSON file; the script will automatically find the images folder next to it
 
 python create_dataset.py --input /path/to/label_studio_exports/result.json --output_dir ./dataset --format coco
 
 ```
 
-
 After running the conversion script, you'll have:
-
 
 ```
 
 dataset/
 
-├── images/              # Images copied from the Label Studio export and                                     converted to .png extension
+├── images/              # Images copied from the Label Studio export and converted to .png extension
 
 │   ├── image1.png
 
@@ -172,8 +176,8 @@ dataset/
 
 ```
 
-  2. Use the prepare_csv_dataset.py to create the .csv file that contains the mapping 
-	  A CSV file will map each image to its corresponding segmentation mask, ensuring proper indexing for SAM2 training.
+4. Use the prepare_csv_dataset.py to create the .csv file that contains the mapping 
+   A CSV file will map each image to its corresponding segmentation mask, ensuring proper indexing for SAM2 training.
 	  
 ```bash
 
@@ -181,7 +185,7 @@ python create_train_csv_dataset.py
 
 ```
 
-Final structure after runNing:
+Final structure after running:
 
 ```
 dataset/
@@ -205,7 +209,7 @@ dataset/
 └── train.csv
  ```
 
-To check if the training data is okay for the fine tunning run:
+5. To check if the training data is okay for the fine tunning run:
 
 ```bash
 
@@ -215,9 +219,9 @@ python analyze_training_data.py
 If something isn't right, fixed it by deleting the conversions and train.csv and redo the 3 above commands on the same order (conversion→making the train.csv file→analyzing) before starting the fine tuning.
 
 
-## Fine-tuning SAM2.1
+# Fine-tuning SAM2.1
 
-Then run the `data_preparation.py` script to prepare the dataset for training:
+Run the `data_preparation.py` script to prepare the dataset for training:
 
 ```bash
 
@@ -233,10 +237,10 @@ python fine_tune_model.py
 
 ```
 This script will load the SAM2.1 model, prepare the dataset, and start training. It will save checkpoints and log training progress.
-It will also open a image visualization window to a sample image from the dataset, just to check if the data is being loaded correctly. You need to close it so the model can start the training. You can close it by pressing `q` or `esc` or by clicking in the X button.
+It will also open a image visualization window to a sample image from the dataset, just to check if the data is being loaded correctly. You need to close it so the model can start the training. You can close it by pressing `q` or `esc` or by clicking in the `X` button.
 
 
-## Inference
+# Inference
 
 To run inference on new images using the fine-tuned model, use the `inference_fine_tuned.py` script:
 
@@ -259,9 +263,27 @@ Modify the code on lines:
 python test_base_vs_finetuned.py
 ```
 
-## Tips for Training SAM
+# Fine-tuning with a MOSE YAML configuration
 
-  
+To fine-tune the base model on MOSE using 1 GPU.
+Be inside the `sam2` folder and run the following command:
+
+*Note:* 
+	- Modify the `sam2.1_hiera_b+MOSE_finetuneCustom.yaml` file to your needs, like changing the dataset paths, batch size, etc.
+	- Most of the code has comments explaining the options available, having in mind the option given by the training folder *.py files 
+	and what each parameter does (most of the time), so you can change it to your needs.
+
+```bash
+python training/train.py \
+	-c sam2/sam2.1_hiera_b+MOSE_finetuneCustom.yaml \
+	--use-cluster 0 \
+	--num-gpus 1
+```
+
+# Additional Information
+## Tips for Training SAM
+### General Guidelines
+
 1. **Data Preparation**:
 
    - Ensure your masks are binary (foreground=1, background=0)
