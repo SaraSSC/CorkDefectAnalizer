@@ -31,8 +31,8 @@ def get_points(mask, num_points):
     return np.array(points)
 
 # Test with a specific image
-image_path = "./dataset/images/866b4db3-rolha000020.png"
-mask_path = "./dataset/masks/866b4db3-rolha000020_mask.png"
+image_path = "./dataset/images/6de82c6b-rolha000147.png"
+mask_path = "./dataset/masks/6de82c6b-rolha000147.png"
 
 print("Testing BASE SAM2 model (without fine-tuning)")
 print(f"Image: {image_path}")
@@ -48,8 +48,8 @@ input_points = get_points(mask, 10)
 print(f"Input points: {input_points.shape}")
 
 # Load BASE SAM2 model (no fine-tuning)
-sam2_checkpoint = "./checkpoints/sam2.1_hiera_small.pt"
-model_cfg = "./configs/sam2.1/sam2.1_hiera_s.yaml"
+sam2_checkpoint = "./checkpoints/sam2.1_hiera_base_plus.pt"
+model_cfg = "./configs/sam2.1/sam2.1_hiera_b+.yaml"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
@@ -76,7 +76,7 @@ for i, (mask_pred, score) in enumerate(zip(masks_base, scores_base)):
     print(f"BASE Mask {i}: Score={score[0]:.4f}, Non-zero pixels={mask_pixels}")
 
 # Now test FINE-TUNED model
-FINE_TUNED_MODEL_WEIGHTS = "cork_analizer_sam2_8000.pt"
+FINE_TUNED_MODEL_WEIGHTS = "cork_analizer_sam2_CAWR_8000.pt"
 
 if os.path.exists(FINE_TUNED_MODEL_WEIGHTS):
     print(f"\nLoading fine-tuned weights: {FINE_TUNED_MODEL_WEIGHTS}")
@@ -159,13 +159,7 @@ if os.path.exists(FINE_TUNED_MODEL_WEIGHTS):
     plt.axis('off')
     
     # Comparison
-    plt.subplot(2, 4, 4)
-    plt.title('Score Comparison')
-    if len(masks_base) > 0 and len(masks_ft) > 0:
-        plt.bar(['BASE', 'Fine-tuned'], [scores_base.max(), scores_ft.max()])
-        plt.ylabel('Best Score')
-    plt.axis('off')
-    
+   
     plt.subplot(2, 4, 8)
     plt.title('Points on Image')
     plt.imshow(image)

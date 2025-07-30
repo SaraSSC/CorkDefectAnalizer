@@ -41,7 +41,7 @@ def create_train_csv():
         image_name = image_file.stem  # e.g., "4e6a7f61-rolha000017"
         
         # Create the corresponding mask filename
-        mask_filename = f"{image_name}_mask.png"
+        mask_filename = f"{image_name}.png"
         mask_file = masks_dir / mask_filename
         
         # Check if the corresponding mask exists

@@ -229,11 +229,12 @@ python data_preparation.py
 
 ```
 This script will read the images and masks, resize them to 1024x1024, and generate random points on the regions of interest (ROIs) in the masks. The output will be a batch of images, binary masks, and points ready for training.
-After preparing the dataset, you can fine-tune SAM2.1 using the `fine_tune_model.py` script:
+After preparing the dataset, you can fine-tune SAM2.1 using the `fine_tune_model_***.py` script:
 
 ```bash
 
-python fine_tune_model.py
+python fine_tune_model_CAWR.py
+#or _StepLR
 
 ```
 This script will load the SAM2.1 model, prepare the dataset, and start training. It will save checkpoints and log training progress.

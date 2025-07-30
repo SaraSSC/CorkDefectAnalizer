@@ -1,4 +1,3 @@
-
 import random
 import cv2
 import os
@@ -76,9 +75,9 @@ num_samples = 30  # Number of points per segment to sample
 input_points = get_points(mask, num_samples)
 
 # Load the fine-tuned model
-FINE_TUNED_MODEL_WEIGHTS = "cork_analizer_sam2_8000.pt"  # Use the latest model
-sam2_checkpoint = "./checkpoints/sam2.1_hiera_small.pt" # Ensure this matches the training checkpoint
-model_cfg = "./configs/sam2.1/sam2.1_hiera_s.yaml" # Ensure this matches the training configuration
+FINE_TUNED_MODEL_WEIGHTS = "cork_analizer_sam2_CAWR_8000.pt"  # Use the latest model
+sam2_checkpoint = "./checkpoints/sam2.1_hiera_base_plus.pt" # Ensure this matches the training checkpoint
+model_cfg = "./configs/sam2.1/sam2.1_hiera_b+.yaml" # Ensure this matches the training configuration
 
 print(f"Loading model from {sam2_checkpoint}")
 print(f"Loading fine-tuned weights from {FINE_TUNED_MODEL_WEIGHTS}")
@@ -158,9 +157,9 @@ if len(masks) > 0:
         mask_pred = sorted_masks[i]
         
         # Skip if overlap is too high
-        if mask_pred.sum() > 0:  # Only check if mask has content
+        if mask_pred.sum() > 4:  # Only check if mask has content #0
             overlap_ratio = (mask_pred * occupancy_mask).sum() / mask_pred.sum()
-            if overlap_ratio > 0.15:
+            if overlap_ratio > 4.15: #0.15:
                 print(f"Skipping mask {i} due to high overlap ({overlap_ratio:.3f})")
                 continue
         
@@ -227,17 +226,69 @@ if len(masks) > 0:
     plt.subplot(1, 2, 1)
     plt.title('Ground Truth Overlay')
     plt.imshow(image)
-    plt.imshow(mask, alpha=0.4, cmap='Reds')
+    # Fix: Ensure mask is properly binarized for visualization
+    mask_binary = (mask > 0).astype(np.float32)
+    plt.imshow(mask_binary, alpha=0.4, cmap='Reds')
     plt.axis('off')
     
     plt.subplot(1, 2, 2)
     plt.title('Best Prediction Overlay')
     plt.imshow(image)
-    best_mask = masks[np.argmax(scores[:, 0]), 0]
-    plt.imshow(best_mask, alpha=0.4, cmap='Blues')
+    # Fix 1: Use the mask with highest score for overlay
+    best_mask_idx = np.argmax(scores[:, 0])
+    best_mask = masks[best_mask_idx, 0]
+    # Fix 2: Threshold the predicted mask for better visualization
+    best_mask_binary = (best_mask > 0.5).astype(np.float32)
+    plt.imshow(best_mask_binary, alpha=0.4, cmap='Blues')
+    plt.text(10, 20, f"Score: {scores[best_mask_idx, 0]:.4f}", 
+             color='white', fontsize=12, bbox=dict(facecolor='black', alpha=0.7))
     plt.axis('off')
     
-    plt.tight_layout()
-    plt.show()
+    # Add IoU calculation between ground truth and best prediction
+    intersection = np.logical_and(mask_binary, best_mask_binary).sum()
+    union = np.logical_or(mask_binary, best_mask_binary).sum()
+    iou = intersection / union if union > 0 else 0
+    plt.suptitle(f'Ground Truth vs Best Prediction (IoU: {iou:.4f})', fontsize=14)
+    
+    # Add another visualization showing all top 3 predictions combined
+    if len(masks) >= 3:
+        plt.figure(figsize=(15, 5))
+        
+        plt.subplot(1, 3, 1)
+        plt.title('Ground Truth')
+        plt.imshow(image)
+        plt.imshow(mask_binary, alpha=0.4, cmap='Reds')
+        plt.axis('off')
+        
+        plt.subplot(1, 3, 2)
+        plt.title('Best Single Prediction')
+        plt.imshow(image)
+        plt.imshow(best_mask_binary, alpha=0.4, cmap='Blues')
+        plt.axis('off')
+        
+        # Show top 3 predictions combined
+        plt.subplot(1, 3, 3)
+        plt.title('Top 3 Predictions Combined')
+        plt.imshow(image)
+        
+        # Create a combined mask from top 3 predictions
+        combined_mask = np.zeros_like(best_mask)
+        top_indices = np.argsort(scores[:, 0])[-3:][::-1]  # Get indices of top 3 scores
+        
+        # Use different colors for each prediction
+        colors = ['Blues', 'Greens', 'Purples']
+        for i, idx in enumerate(top_indices):
+            pred_mask = (masks[idx, 0] > 0.5).astype(np.float32)
+            # Use different alpha and cmap for each mask
+            plt.imshow(pred_mask, alpha=0.3, cmap=colors[i])
+            combined_mask = np.logical_or(combined_mask, pred_mask)
+        
+        # Calculate IoU for combined mask
+        combined_iou = np.logical_and(mask_binary, combined_mask).sum() / np.logical_or(mask_binary, combined_mask).sum()
+        plt.title(f'Top 3 Predictions Combined\nIoU: {combined_iou:.4f}')
+        plt.axis('off')
+        
+        plt.tight_layout()
+        plt.show()
 else:
     print("No masks to visualize")

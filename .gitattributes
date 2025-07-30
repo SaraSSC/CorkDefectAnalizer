@@ -25,3 +25,4 @@
 /sam2/checkpoints/sam2.1_hiera_tiny.pt filter=lfs diff=lfs merge=lfs -text
 /sam2/fine_tuned_models/cork_analizer_sam2.pt filter=lfs diff=lfs merge=lfs -text
 # Note: cork_analizer_sam2_*.pt files are excluded via .gitignore
+/sam2/*.png filter=lfs diff=lfs merge=lfs -text

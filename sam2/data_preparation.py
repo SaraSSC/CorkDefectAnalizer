@@ -9,6 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from sklearn.model_selection import train_test_split
+from scipy import ndimage
+from skimage import measure
 import sam2
 
 from sam2.build_sam import build_sam2
@@ -66,26 +68,41 @@ def read_batch(data, visualize_data=False):
    ann_map = cv2.resize(ann_map, (int(ann_map.shape[1] * r), int(ann_map.shape[0] * r)), interpolation=cv2.INTER_NEAREST)
      ### Continuation of read_batch() ###
 
+   # Import point sampling function
+   from point_sampling import sample_points_from_mask
+   
    # Initialize a single binary mask
    binary_mask = np.zeros_like(ann_map, dtype=np.uint8)
    points = []
 
-   # Get binary masks and combine them into a single mask
+   # Get binary masks and sample points from each defect area
    inds = np.unique(ann_map)[1:]  # Skip the background (index 0)
+   
    for ind in inds:
-       mask = (ann_map == ind).astype(np.uint8)  # Create binary mask for each unique index
-       binary_mask = np.maximum(binary_mask, mask)  # Combine with the existing binary mask
-
-   # Erode the combined binary mask to avoid boundary points
-   eroded_mask = cv2.erode(binary_mask, np.ones((5, 5), np.uint8), iterations=1)
-
-   # Get all coordinates inside the eroded mask and choose a random point
-   coords = np.argwhere(eroded_mask > 0)
-   if len(coords) > 0:
-       for _ in inds:  # Select as many points as there are unique labels
+       # Create binary mask for this label
+       mask = (ann_map == ind).astype(np.uint8)
+       
+       # Erode the mask slightly to avoid boundary points
+       eroded_mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=1)
+       
+       # Sample points from this specific defect type
+       # You can adjust the number of points per component
+       defect_points = sample_points_from_mask(eroded_mask, num_points_per_component=5)
+       points.extend(defect_points)
+       
+       # Add this mask to the combined binary mask
+       binary_mask = np.maximum(binary_mask, mask)
+   
+   # If no points were found, try with the full mask
+   if len(points) == 0 and np.any(binary_mask > 0):
+       print("No defect components found, sampling from whole mask")
+       eroded_mask = cv2.erode(binary_mask, np.ones((5, 5), np.uint8), iterations=1)
+       coords = np.argwhere(eroded_mask > 0)
+       if len(coords) > 0:
            yx = np.array(coords[np.random.randint(len(coords))])
            points.append([yx[1], yx[0]])
-
+   
+   # Convert to numpy array
    points = np.array(points)
    if visualize_data:
         # Plotting the images and points

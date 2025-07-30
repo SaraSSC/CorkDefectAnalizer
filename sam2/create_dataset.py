@@ -53,27 +53,30 @@ def convert_labelstudio_coco(json_file, output_dir):
         width = image_info["width"]
         height = image_info["height"]
         
-        # Create a blank mask
-        mask = np.zeros((height, width, 3), dtype=np.uint8)
+        # Create a blank mask (grayscale, not RGB)
+        mask = np.zeros((height, width), dtype=np.uint8)
         
         # Draw all segments for this image
         for ann in image_annotations[image_id]:
             if "segmentation" in ann:
                 # COCO segmentation format can be RLE or polygon
                 if isinstance(ann["segmentation"], dict):  # RLE format
-                    # This would require pycocotools to decode
                     print(f"Warning: RLE format not supported for {filename}")
                 else:  # Polygon format
                     for segment in ann["segmentation"]:
                         # Convert flat array to points
                         points = np.array(segment).reshape(-1, 2).astype(np.int32)
-                        # Draw the polygon - OpenCV requires color as a tuple
-                        cv2.fillPoly(mask, [points], (255, 255, 255))
+                        # Draw the polygon with binary value
+                        cv2.fillPoly(mask, [points], 255)
+        
+        # Validate the conversion
+        #validate_mask_conversion(image_annotations[image_id], mask, filename)
         
         # Save the mask
         base_filename = os.path.splitext(os.path.basename(filename))[0]
-        mask_filename = os.path.join(masks_dir, f"{base_filename}_mask.png")
+        mask_filename = os.path.join(masks_dir, f"{base_filename}.png")  # Removed "_mask" suffix for PNGRawDataset
         Image.fromarray(mask).save(mask_filename)
+        
         
         # Copy the image if available
         # For Label Studio's "COCO with images" export, images are usually in an 'images' folder
