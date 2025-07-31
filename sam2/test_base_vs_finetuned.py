@@ -48,8 +48,8 @@ input_points = get_points(mask, 10)
 print(f"Input points: {input_points.shape}")
 
 # Load BASE SAM2 model (no fine-tuning)
-sam2_checkpoint = "./checkpoints/sam2.1_hiera_base_plus.pt"
-model_cfg = "./configs/sam2.1/sam2.1_hiera_b+.yaml"
+sam2_checkpoint = "./checkpoints/sam2.1_hiera_small.pt"
+model_cfg = "./configs/sam2.1/sam2.1_hiera_s.yaml"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
@@ -76,7 +76,7 @@ for i, (mask_pred, score) in enumerate(zip(masks_base, scores_base)):
     print(f"BASE Mask {i}: Score={score[0]:.4f}, Non-zero pixels={mask_pixels}")
 
 # Now test FINE-TUNED model
-FINE_TUNED_MODEL_WEIGHTS = "cork_analizer_sam2_CAWR_8000.pt"
+FINE_TUNED_MODEL_WEIGHTS = "cork_analizer_sam2_CAWR_small_7000.pt"
 
 if os.path.exists(FINE_TUNED_MODEL_WEIGHTS):
     print(f"\nLoading fine-tuned weights: {FINE_TUNED_MODEL_WEIGHTS}")

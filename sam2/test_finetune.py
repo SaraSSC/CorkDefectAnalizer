@@ -72,7 +72,8 @@ class CorkDefectPredictor:
         
         return img
     
-    def generate_grid_points(self, image_shape, grid_density=32, add_random=True, random_points=20):
+   
+    def generate_grid_points(self, image_shape, grid_density=52, add_random=True, random_points=300):
         """
         Generate a grid of points for automatic mask generation
         with optional random points for better defect coverage
@@ -109,15 +110,15 @@ class CorkDefectPredictor:
         # Add focused random points in limited quantity
         if add_random:
             # Add some random points but limit to a reasonable number
-            random_points = min(random_points, 30)
+            random_points = min(random_points, 200)
             
             for _ in range(random_points):
                 x = np.random.randint(w//20, w-w//20)
                 y = np.random.randint(h//20, h-h//20)
                 points.append([x, y])
             
-            # Add a few edge-focused points (reduced from 20)
-            edge_points = 12
+            # Add a few edge-focused points (reduced from 20/12)
+            edge_points = 20
             for _ in range(edge_points):
                 edge = np.random.choice(['top', 'bottom', 'left', 'right'])
                 if edge == 'top':
@@ -150,14 +151,14 @@ class CorkDefectPredictor:
                     points.append([x, y])
         
         # Convert to numpy array and limit total number of points for performance
-        points = points[:min(len(points), 300)]  # Cap total points at 300
+        points = points[:min(len(points), 800)]  # Cap total points 
         points_array = np.array(points)
         points_array = np.expand_dims(points_array, axis=1)
         
         print(f"Generated {len(points)} points for prediction")
         return points_array
     
-    def predict_defects(self, image, num_grid_points=32, score_threshold=0.2):
+    def predict_defects(self, image, num_grid_points=50 , score_threshold=0.1):
         """
         Predict defects in the given image using grid points
         
@@ -178,7 +179,7 @@ class CorkDefectPredictor:
         grid_points = self.generate_grid_points(image.shape, 
                                               grid_density=num_grid_points,
                                               add_random=True,
-                                              random_points=30)
+                                              random_points=100) #TODO: #good with 100 & 300
         
         # Early termination check
         if grid_points.shape[0] == 0:
@@ -190,7 +191,7 @@ class CorkDefectPredictor:
         
         try:
             # Process points in batches to save memory and improve performance
-            batch_size = 100 #50
+            batch_size = 10 #TODO: modify to 50 for faster processing
             all_masks = []
             all_scores = []
             
@@ -206,7 +207,8 @@ class CorkDefectPredictor:
                     masks, scores, _ = self.predictor.predict(
                         point_coords=batch_points,
                         point_labels=batch_labels,
-                        multimask_output=False, #True
+                        multimask_output=True, #TODO: modify to False when change to b+ model
+                        
                     )
                 
                 # Filter low-quality masks early
@@ -373,7 +375,7 @@ def create_visualization(image, seg_map, defect_info, image_name, processing_tim
     
     # Title with image name, processing time, and defect count
     num_defects = len(defect_info)
-    title = f"{image_name} | Processing Time: {processing_time:.2f}s | Defects Found: {num_defects}"
+    title = f"{image_name} | Processing Time: {processing_time:.2f}s | Nº Masks Placed: {num_defects}"
     fig.suptitle(title, fontsize=16, fontweight='bold')
     
     # Image panel (contains original image and overlay side by side)
@@ -418,16 +420,7 @@ def create_visualization(image, seg_map, defect_info, image_name, processing_tim
                         bbox=dict(boxstyle='circle,pad=0.3', facecolor='white', alpha=0.9, edgecolor='black'),
                         fontsize=12, fontweight='bold', color='black')
             
-            # Add bounding box around defect
-            mask_coords = np.where(seg_map == defect['id'])
-            if len(mask_coords[0]) > 0:
-                min_row, max_row = mask_coords[0].min(), mask_coords[0].max()
-                min_col, max_col = mask_coords[1].min(), mask_coords[1].max()
-                
-                rect = patches.Rectangle((min_col, min_row), 
-                                       max_col - min_col, max_row - min_row,
-                                       linewidth=2, edgecolor='red', facecolor='none')
-                image_panel.add_patch(rect)
+            
     
     # Table panel for defect information
     table_panel = fig.add_subplot(gs[1])
@@ -436,7 +429,7 @@ def create_visualization(image, seg_map, defect_info, image_name, processing_tim
     if num_defects > 0:
         # Prepare data for the table - exactly 3 columns as requested
         table_data = []
-        headers = ['Defect #', 'Dimensions (W×H px)', 'Confidence (%)']
+        headers = ['Mask Number #', 'Dimensions (W×H px)', 'Confidence (%)']
         
         for defect in defect_info:
             row = [
@@ -484,12 +477,12 @@ def main():
     Main function to run defect detection and visualization on cork images
     """
     # Configuration - ADJUST THESE PATHS AS NEEDED
-    MODEL_CFG = "./configs/sam2.1/sam2.1_hiera_b+.yaml"  # Model configuration
-    SAM2_CHECKPOINT = "./checkpoints/sam2.1_hiera_base_plus.pt"  # Base SAM2 checkpoint
+    MODEL_CFG = "./configs/sam2.1/sam2.1_hiera_s.yaml"  # Model configuration
+    SAM2_CHECKPOINT = "./checkpoints/sam2.1_hiera_small.pt"  # Base SAM2 checkpoint
     
     # Try to find the fine-tuned weights in different possible locations
     possible_weight_paths = [
-        "./cork_analizer_sam2_CAWR_8000.pt",
+        "./cork_analizer_sam2_CAWR_small_7000.pt", #NOTE better weights 7000
           # Try without CAWR suffix
         
         *[f for f in os.listdir(".") if f.endswith('.pt') and 'cork' in f.lower()]
@@ -560,8 +553,8 @@ def main():
         # Start with a reasonable grid density for speed
         masks, scores, processing_time = predictor.predict_defects(
             image, 
-            num_grid_points=10, #32  # Lower initial grid density for faster processing
-            score_threshold=0.08   # Slightly lower threshold for better sensitivity
+            num_grid_points=50,  # Lower initial grid density for faster processing
+            score_threshold=0.07   # Slightly lower threshold for better sensitivity
         )
         
         print(f"Initial predictions: {len(masks)} masks")
@@ -572,8 +565,8 @@ def main():
             print("No defects found with fast settings, trying more intensive search...")
             masks, scores, processing_time = predictor.predict_defects(
                 image, 
-                num_grid_points=20, #48
-                score_threshold=0.06#0.05
+                num_grid_points=100, 
+                score_threshold=0.04  # Lower threshold for more sensitivity
             )
             print(f"Secondary predictions: {len(masks)} masks")
             print(f"Total processing time: {processing_time:.2f} seconds")
@@ -586,7 +579,7 @@ def main():
             overlap_threshold=overlap_threshold
         )
         
-        print(f"Final defects after processing: {len(defect_info)}")
+        print(f"Final masks after processing: {len(defect_info)}")
         
         # Create visualization
         fig = create_visualization(image, seg_map, defect_info, image_name, processing_time)
@@ -604,8 +597,8 @@ def main():
         print(f"DEFECT ANALYSIS SUMMARY - {image_name}")
         print("="*60)
         print(f"Processing Time: {processing_time:.2f} seconds")
-        print(f"Total Defects Found: {len(defect_info)}")
-        
+        print(f"Total Total Masks Placed: {len(defect_info)}")
+        """       
         if defect_info:
             print("\nDefect Details:")
             for defect in defect_info:
@@ -613,7 +606,7 @@ def main():
                 print(f"    - Confidence: {defect['confidence']*100:.1f}%")
                 print(f"    - Dimensions: {defect['width']}×{defect['height']} pixels")
                 print(f"    - Area: {defect['area']} pixels")
-        
+        """
         print("="*60)
         print("To analyze more images, add them to the './test_images' folder and run again.")
 

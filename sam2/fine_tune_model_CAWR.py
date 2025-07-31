@@ -23,8 +23,9 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
 # Specify the path to the SAM2 model checkpoint and configuration file
-sam2_checkpoint = "./checkpoints/sam2.1_hiera_base_plus.pt"
-model_cfg = "./configs/sam2.1/sam2.1_hiera_b+.yaml" # NOTE remove /sam2 path if breaks
+sam2_checkpoint = "./checkpoints/sam2.1_hiera_small.pt"
+model_cfg = "./configs/sam2.1/sam2.1_hiera_s.yaml"  # NOTE remove /sam2 path if breaks
+
 
 # Check if CUDA is available and compatible, otherwise use CPU
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -48,15 +49,15 @@ NO_OF_STEPS = 8000  # Number of training steps
 
 
     
-FINE_TUNED_MODEL_NAME = "cork_analizer_sam2_CAWR"  # Base name for the fine-tuned model
 
-#TODO: modify the learning rate (up to .....5)
+FINE_TUNED_MODEL_NAME = "cork_analizer_sam2_CAWR_small"  # Base name for the fine-tuned model
+
+
 optimizer = torch.optim.AdamW(params=predictor.model.parameters(),
                               lr=0.00001,  # Current 1e-5
                               weight_decay=1e-4)
 
-# There are different learning rate schedulers available, here I'm using StepLR
-#TODO: modify the step size and gamma (min seps 2000, gamma 0.6)
+# There are different learning rate schedulers available, here I'm using CosineAnnealingWarmRestarts
 
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
         optimizer,

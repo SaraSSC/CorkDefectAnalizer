@@ -3,7 +3,10 @@
 This project provides tools to fine-tune Meta's Segment Anything Model (SAM2.1) on custom segmentation datasets. 
 The implementation includes dataset preparation, model training, and inference scripts.
 
-# First step
+**Note**: If using this pc jump to the [#DatasetPreparation] (Option B) section, as the first step is already done. Just don't forget to activate the conda environment before running the scripts. ```conda activate sam2_env```
+
+
+# FirstStep
 
 ## Only ignore this step if it's already installed in your system :
 
@@ -19,10 +22,10 @@ The implementation includes dataset preparation, model training, and inference s
 	- For RTX 5060 Ti and newer GPUs, install CUDA 12.8 or newer
 	- For older GPUs, CUDA 11.8 from [archive](https://developer.nvidia.com/cuda-11-8-0-download-archive) may be sufficient
 
-# Second step
+# SecondStep
 
 ## Environment Setup
-(Note that you cannot ignore the [[#First step]] since SAM2.1 will not run without those programs )
+(Note that you cannot ignore the [#FirstStep] since SAM2.1 will not run without those programs )
 
 1. Create and activate a conda environment:
 
@@ -55,16 +58,6 @@ pip install scikit-learn
 ```
  
 
-   Alternatively, you can install all dependencies from the requirements.txt file:
-
-  
-```bash
-
-	pip install -r requirements.txt
-
-```
-
-
 ## Clone the Github repository to and folder/local of choice or download via their provided GUI interface
 
 - if by  GUI download, just unzip the folder to the location you want
@@ -89,7 +82,7 @@ git clone https://github.com/facebookresearch/sam2.git
 ```bash
 
 cd sam2
-pip install -e ".[dev]"
+pip install -e .
 
 ```
 3. Move inside checkpoints and install the checkpoints 
@@ -102,7 +95,7 @@ download_ckpts.sh #or download_ckpts.bat
 ```
 4. Copy the files that are missing from my repository to the `sam2` folder, don't forget to keep the same names for them.
 
-# Dataset Preparation
+# DatasetPreparation
 
 ## Option A: Using Raw Images and Masks
 
@@ -234,7 +227,7 @@ After preparing the dataset, you can fine-tune SAM2.1 using the `fine_tune_model
 ```bash
 
 python fine_tune_model_CAWR.py
-#or _StepLR
+#or _StepLR -> worse results
 
 ```
 This script will load the SAM2.1 model, prepare the dataset, and start training. It will save checkpoints and log training progress.
@@ -261,27 +254,33 @@ Modify the code on lines:
 
 
 ```bash
+
 python test_base_vs_finetuned.py
+
 ```
 
-# Fine-tuning with a MOSE YAML configuration
-
-To fine-tune the base model on MOSE using 1 GPU.
-Be inside the `sam2` folder and run the following command:
-
-*Note:* 
-	- Modify the `sam2.1_hiera_b+MOSE_finetuneCustom.yaml` file to your needs, like changing the dataset paths, batch size, etc.
-	- Most of the code has comments explaining the options available, having in mind the option given by the training folder *.py files 
-	and what each parameter does (most of the time), so you can change it to your needs.
+# Testing the model on new images (that are not in the dataset)
+To test the model on new images, you can use the `test_finetune.py` script. This script allows you to specify a directory of images and will run inference using the fine-tuned model.
+The images need to be placed in a folder called `test_images` inside the `sam2` folder, and the script will save the results in a folder called `defect_analysis_results` inside the `sam2` folder.
 
 ```bash
-python training/train.py \
-	-c sam2/sam2.1_hiera_b+MOSE_finetuneCustom.yaml \
-	--use-cluster 0 \
-	--num-gpus 1
+
+python test_finetune.py 
+
 ```
 
+
 # Additional Information
+
+To use label studio type on the cmd and create an account using the gui:
+
+```bash
+
+label-studio
+
+```
+It will open a browser window where you can create a project and start annotating images.
+
 ## Tips for Training SAM
 ### General Guidelines
 
