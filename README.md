@@ -1,7 +1,7 @@
 # Training SAM on Custom Data
 
 This project provides tools to fine-tune Meta's Segment Anything Model (SAM2.1) on custom segmentation datasets. 
-The implementation includes dataset preparation, model training, and inference scripts.
+The implementation includes dataset preparation, model training, interference scripts, comparison between base model and fine-tuned and testing on new images.
 
 **Note**: If everything is already set up, jump to [#DatasetPreparation] (Option B) section, as the first step is already done. Just don't forget to activate the conda environment before running the scripts. ```conda activate sam2_env```
 
@@ -10,14 +10,14 @@ The implementation includes dataset preparation, model training, and inference s
 
 ## Only ignore this step if it's already installed in your system :
 
-1.  Download the Microsoft Visual Studios Installer from from [Microsoft](https://visualstudio.microsoft.com/)
-	1.  Open and run the .exe file for installation of Microsoft Visual Studios 
-	2.  After installed, modify the installation and include " C++  for desktop development"
-2.  Download and install BuildTools for Visual Studios from [Microsoft](https://visualstudio.microsoft.com/downloads/)
-	1. After added to the Visual Studios Installer modify the installation and include "C++ for desktop development"
+1.  Download the Microsoft Visual Studio Installer from [Microsoft](https://visualstudio.microsoft.com/)
+	1.  Open and run the .exe file for installation of Microsoft Visual Studio 
+	2.  After installation, modify the installation and include " C++  for desktop development"
+2.  Download and install BuildTools for Visual Studio from [Microsoft](https://visualstudio.microsoft.com/downloads/)
+	1. After adding to the Visual Studio Installer, modify the installation and include "C++ for desktop development"
 3.  Download and install Anaconda from [Anaconda](https://anaconda.org), don't forget to click on the checkbox to add the path to Windows Environments
 4.  Download wget.exe from [eternallybored](https://eternallybored.org/misc/wget/ )
-	1.  After the download, copy the file and past it in Windows/Sys32 folder in your drive
+	1.  After the download, copy the file and paste it into the Windows/Sys32 folder on your drive
 5. 	Download and install cuda-toolkit from [Nvidia](https://developer.nvidia.com/cuda-downloads) 
 	- For RTX 5060 Ti and newer GPUs, install CUDA 12.8 or newer
 	- For older GPUs, CUDA 11.8 from [archive](https://developer.nvidia.com/cuda-11-8-0-download-archive) may be sufficient
@@ -58,7 +58,7 @@ pip install scikit-learn
 ```
  
 
-## Clone the Github repository to and folder/local of choice or download via their provided GUI interface
+## Clone the Github repository to folder/local of choice or download via their provided GUI interface
 
 - if by  GUI download, just unzip the folder to the location you want
 - if by using git commands 
@@ -202,14 +202,14 @@ dataset/
 └── train.csv
  ```
 
-5. To check if the training data is okay for the fine tunning run:
+5. To check if the training data is okay for the fine-tuning run:
 
 ```bash
 
 python analyze_training_data.py
 
 ```
-If something isn't right, fixed it by deleting the conversions and train.csv and redo the 3 above commands on the same order (conversion→making the train.csv file→analyzing) before starting the fine tuning.
+If something isn't right, fixed it by deleting the conversions and train.csv and redo the 3 above commands on the same order (conversion→making the train.csv file→analyzing) before starting the fine-tuning.
 
 
 # Fine-tuning SAM2.1
@@ -231,7 +231,7 @@ python fine_tune_model_CAWR.py
 
 ```
 This script will load the SAM2.1 model, prepare the dataset, and start training. It will save checkpoints and log training progress.
-It will also open a image visualization window to a sample image from the dataset, just to check if the data is being loaded correctly. You need to close it so the model can start the training. You can close it by pressing `q` or `esc` or by clicking in the `X` button.
+It will also open an image visualisation window to a sample image from the dataset, just to check if the data is being loaded correctly. You need to close it so the model can start the training. You can close it by pressing `q` or `esc` or by clicking in the `X` button.
 
 
 # Inference
@@ -250,7 +250,7 @@ To compare the fine tuned model with any of the sam2 base model.
 Modify the code on lines:
 	- 34→35 to specify the image testing
 	- 51→52 sam2 model checkpoints and model configuration
-	- 79 fine tuned model 
+	- 79 fine-tuned model 
 
 
 ```bash
@@ -272,7 +272,7 @@ python test_finetune.py
 
 # Additional Information
 
-To use label studio type on the cmd and create an account using the gui:
+To use Label Studio type on the cmd and create an account using the gui:
 
 ```bash
 
@@ -290,7 +290,7 @@ It will open a browser window where you can create a project and start annotatin
 
    - Make sure image and mask sizes match
 
-   - Provide diverse examples for better generalization
+   - Provide diverse examples for better generalisation
 
 
 1. **Training Parameters**:
@@ -383,13 +383,13 @@ Here are some recommended tools for creating segmentation masks:
 
    - Advanced annotation features including AI assistance
 
-   - Supports various export formats including masks
+   - Supports various export formats, including masks
 
   
 
 4. **[Roboflow](https://roboflow.com/)**:
 
-   - Good for managing datasets with free tier
+   - Good for managing datasets with the free tier
 
    - Pre-processing and augmentation tools
 
@@ -399,7 +399,7 @@ Here are some recommended tools for creating segmentation masks:
 
 5. **[Label Studio](https://labelstud.io/)**:
 
-   - Open-source data labeling tool with both cloud and self-hosted options
+   - Open-source data labelling tool with both cloud and self-hosted options
 
    - **Project Setup for SAM Training**:
 
@@ -415,8 +415,8 @@ Here are some recommended tools for creating segmentation masks:
 
      1. Go to your project and click "Export"
 
-     2. Select **"COCO with images"** format (recommended) which includes both annotations and image files
+     2. Select **"COCO with images"** format (recommended), which includes both annotations and image files
 
-     3. After export, extract the ZIP file which will contain a JSON file and an 'images' folder
+     3. After export, extract the ZIP file, which will contain a JSON file and an 'images' folder
 
-     4. Convert the export to our required format using the converter script:
+     4. Convert the export to our required format using the converter script.
