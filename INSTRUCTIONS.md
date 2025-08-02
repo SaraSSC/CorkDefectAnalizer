@@ -3,7 +3,7 @@
 This project provides tools to fine-tune Meta's Segment Anything Model (SAM2.1) on custom segmentation datasets. 
 The implementation includes dataset preparation, model training, and inference scripts.
 
-**Note**: If using this pc jump to the [#DatasetPreparation] (Option B) section, as the first step is already done. Just don't forget to activate the conda environment before running the scripts. ```conda activate sam2_env```
+**Note**: If everything is already set up, jump to [#DatasetPreparation] (Option B) section, as the first step is already done. Just don't forget to activate the conda environment before running the scripts. ```conda activate sam2_env```
 
 
 # FirstStep
